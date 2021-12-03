@@ -132,10 +132,12 @@ public class StringStack {
      * @param element a string
      */
     public void push(String element) {
+        // checks load factor
         double temp = (double) this.nElems / this.totalCapacity;
         if (temp >= this.loadFactor) {
             this.totalCapacity = DOUBLE * this.totalCapacity;
             String[] temp1 = new String[totalCapacity];
+            // increase size of array with same elements
             for (int i = 0; i < this.nElems; i++) {
                 temp1[i] = this.data[i];
             }
@@ -156,8 +158,11 @@ public class StringStack {
         }
         this.nElems--;
         String lastElem = this.data[this.nElems];
+        // decrease capacity if load factor is less than or
+        // equal to shrink factor
         if (((double) nElems / this.totalCapacity) <= this.shrinkFactor) {
             this.totalCapacity = this.totalCapacity / DOUBLE;
+            // capacity goes back to original if it is less than it
             if (this.totalCapacity < this.origSize) {
                 this.totalCapacity = this.origSize;
             }
@@ -192,6 +197,7 @@ public class StringStack {
         if (amount < 0) {
             throw new IllegalArgumentException();
         }
+        // if there aren't enough elements, pop all
         if (this.nElems < amount) {
             amount = this.nElems;
         }

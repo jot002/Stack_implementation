@@ -18,9 +18,9 @@ public class TextEditor {
     private StringStack deletedText;
     private IntStack redo;
     private StringStack insertedText;
-    private String lower = "abcdefghijklmnopqrstuvwxyz";
-    private String upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
+    private static final String LOWER = "abcdefghijklmnopqrstuvwxyz";
+    private static final String UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private static final int CAP = 100;
     private static final int DOUBLE = 2;
 
@@ -67,27 +67,36 @@ public class TextEditor {
         if (i < 0 || j > this.text.length()) {
             throw new IllegalArgumentException();
         }
-        String lower = "abcdefghijklmnopqrstuvwxyz";
-        String upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        int constantI = i;
+        int constantJ = j;
         StringBuilder newText = new StringBuilder(this.text);
         while (i < j) {
-            if (Character.isLetter(newText.charAt(i)) == false) {
+            // iterates through the string from
+            // index i inclusive to j exclusive
+            char letter = newText.charAt(i);
+            // skip to next char is it is not a letter
+            if (Character.isLetter(letter) == false) {
                 i++;
-                continue;
             }
-            else if (Character.isLowerCase(newText.charAt(i))){
-                newText.setCharAt(i, upper.charAt(lower.indexOf(newText.charAt(i))));
+            // checks if it is lowercase
+            else if (Character.isLowerCase(letter)){
+                int index = LOWER.indexOf(letter);
+                // switches it to upper case
+                newText.setCharAt(i, UPPER.charAt(index));
                 i++;
             }
+            // checks if it is uppercase
             else {
-                newText.setCharAt(i, lower.charAt((upper.indexOf(newText.charAt(i)))));
+                int index = UPPER.indexOf(letter);
+                // switches it to lower case
+                newText.setCharAt(i, LOWER.charAt(index));
                 i++;
             }
         }
-
         this.text = newText.toString();
         this.redo.clear();
-        int[] undoItems = new int[]{i, j, 0};
+        // updates the undo stack with the steps
+        int[] undoItems = new int[]{constantI, constantJ, 0};
         undo.multiPush(undoItems);
     }
 
@@ -105,16 +114,21 @@ public class TextEditor {
         if (i < 0 || i > this.text.length()) {
             throw new IllegalArgumentException();
         }
+        // if i is anywhere in the string
         if (i > 0) {
+            // get the substrings
             String beginning = this.text.substring(0,i);
             String end = this.text.substring(i);
             this.text = beginning + input + end;
         }
+        // if i is at the beginning, add input before the string
         else {
             this.text = input + this.text;
         }
         redo.clear();
-        undo.multiPush(new int[]{i, input.length() + i, 1});
+        // adds the steps of the operation into the undo stack
+        int[] undoItems = new int[]{i, input.length() + i, 1};
+        undo.multiPush(undoItems);
     }
 
     /**
@@ -132,19 +146,26 @@ public class TextEditor {
             throw new IllegalArgumentException();
         }
         String deletedLetters;
+        // if i is anywhere in the string
         if (i > 0) {
+            // get the substrings
             String beginning = this.text.substring(0, i);
             String end = this.text.substring(j);
+            // these are the deleted characters
             deletedLetters = this.text.substring(i,j);
             this.text = beginning + end;
         }
+        // if i = 0
         else {
+            // delete everything up to index j
             deletedLetters = this.text.substring(0,j);
             this.text = this.text.substring(j);
         }
         redo.clear();
+        // pushes the delete operation into undo stack
         int[] undoItems = new int[]{i, j, DOUBLE};
         undo.multiPush(undoItems);
+        // push the deleted letters into the deletedText
         deletedText.push(deletedLetters);
     }
 
@@ -154,32 +175,29 @@ public class TextEditor {
      * there is
      */
     public boolean undo() {
+        // nothing to undo
         if (undo.isEmpty()) {
             return false;
         }
+        // get the operation, j, and i
         int typeOp = undo.pop();
         int j = undo.pop();
         int i = undo.pop();
-
-        //performs reverse of whatever operation was performed
+        // if it was deleted, now insert it
         if (typeOp == DOUBLE) {
             insert(i, this.deletedText.pop());
-
-        } else if (typeOp == 1) {
+        } // if it was inserted, now delete
+        else if (typeOp == 1) {
             this.insertedText.push(this.text.substring(i, j));
             delete(i, j);
         }
+        // if it was case converted, convert it back
         else {
             caseConvert(i, j);
         }
-
-//        //clears undo for undone operation so undo doesn't undo itself
-//        for (i = 0; i <= DOUBLE; i++) {
-//            undo.pop();
-//        }
-
-        //push operation to redo stack
-        redo.multiPush(new int[]{i, j, typeOp});
+        //push operation to the redo stack
+        int[] redoItems = new int[]{i, j, typeOp};
+        redo.multiPush(redoItems);
         return true;
     }
 
@@ -189,53 +207,50 @@ public class TextEditor {
      * there is
      */
     public boolean redo() {
+        // nothing to redo
         if (redo.isEmpty()) {
             return false;
         }
-
-        /*gets the top 3 values in the redo stack which indiciates the operation performed and
-        indices where operation was performed */
+        // get the operation, j, and i
         int typeOp = redo.pop();
         int j = redo.pop();
         int i = redo.pop();
-
-        //performs reverse of whatever operation was performed
-        if (typeOp == 2) {
+        // if the operation is 2, it will be deleting
+        if (typeOp == DOUBLE) {
             deletedText.push(text.substring(i,j));
             delete(i,j);
-        } else if (typeOp == 1) {
+        } // if the operation is 1, it will insert
+        else if (typeOp == 1) {
             insert(i, insertedText.pop());
-        } else {
+        } // if the operation is 0, case convert it back
+        else {
             caseConvert(i, j);
         }
-        //clears undo for undone operation so undo doesn't undo itself
-        for (i = 0; i <= DOUBLE; i++) {
-            undo.pop();
-        }
-
         //push operation to undo stack
-        undo.multiPush(new int[]{i, j, typeOp});
+        int[] undoItems = new int[]{i, j, typeOp};
+        undo.multiPush(undoItems);
         return true;
     }
 
-    public static void main(String[] args) {
-        TextEditor test = new TextEditor();
-        test.insert(0,"C");
-        test.insert(0,"s");
-        test.insert(0,"d");
-        test.insert(0,".");
-        test.insert(0,"c");
-        test.insert(0,"S");
-        test.insert(0,"d");
-        test.insert(0,".");
-        test.insert(0,"c");
-        test.insert(0,"s");
-        test.insert(0,"D");
+//    public static void main(String[] args) {
+//        TextEditor test = new TextEditor();
+//        test.insert(0,"C");
+//        test.insert(0,"s");
+//        test.insert(0,"d");
+//        test.insert(0,".");
+//        test.insert(0,"c");
+//        test.insert(0,"S");
+//        test.insert(0,"d");
+//        test.insert(0,".");
+//        test.insert(0,"c");
+//        test.insert(0,"s");
+//        test.insert(0,"D");
 //        test.caseConvert(1,4);
-        test.insert(11, "CSE");
+//        test.insert(11, "CSE");
 //        test.delete(0,11);
-        test.undo();
-        test.redo();
-        System.out.println(test.text);
-    }
+//        test.undo();
+//        test.redo();
+//        test.undo();
+//        System.out.println(test.text);
+//    }
 }
