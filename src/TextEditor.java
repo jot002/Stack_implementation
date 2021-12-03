@@ -87,7 +87,7 @@ public class TextEditor {
 
         this.text = newText.toString();
         this.redo.clear();
-        int[] undoItems = new int[]{i,j,0};
+        int[] undoItems = new int[]{i, j, 0};
         undo.multiPush(undoItems);
     }
 
@@ -102,7 +102,7 @@ public class TextEditor {
         if (input == null) {
             throw new NullPointerException();
         }
-        if (i < 0 || i >= input.length()) {
+        if (i < 0 || i > this.text.length()) {
             throw new IllegalArgumentException();
         }
         if (i > 0) {
@@ -128,7 +128,7 @@ public class TextEditor {
         if (i >= j) {
             throw new IllegalArgumentException();
         }
-        if (i < 0 || j >= text.length()) {
+        if (i < 0 || j > text.length()) {
             throw new IllegalArgumentException();
         }
         String deletedLetters;
@@ -162,7 +162,7 @@ public class TextEditor {
         int i = undo.pop();
 
         //performs reverse of whatever operation was performed
-        if (typeOp == 2) {
+        if (typeOp == DOUBLE) {
             insert(i, this.deletedText.pop());
 
         } else if (typeOp == 1) {
@@ -173,10 +173,10 @@ public class TextEditor {
             caseConvert(i, j);
         }
 
-        //clears undo for undone operation so undo doesn't undo itself
-        for (i = 0; i <= DOUBLE; i++) {
-            undo.pop();
-        }
+//        //clears undo for undone operation so undo doesn't undo itself
+//        for (i = 0; i <= DOUBLE; i++) {
+//            undo.pop();
+//        }
 
         //push operation to redo stack
         redo.multiPush(new int[]{i, j, typeOp});
@@ -231,7 +231,11 @@ public class TextEditor {
         test.insert(0,"c");
         test.insert(0,"s");
         test.insert(0,"D");
-        test.caseConvert(0,11);
+//        test.caseConvert(1,4);
+        test.insert(11, "CSE");
+//        test.delete(0,11);
+        test.undo();
+        test.redo();
         System.out.println(test.text);
     }
 }
